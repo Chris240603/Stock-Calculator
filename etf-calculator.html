@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF 損益計算機</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #020810;
+    --bg-panel: #060d1a;
+    --bg-card: #0a1628;
+    --bg-input: #0d1e35;
+    --border: #0d3060;
+    --border-glow: #1a5fa8;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --accent3: #ff6b35;
+    --accent-dim: rgba(0, 212, 255, 0.15);
+    --text-bright: #e8f4ff;
+    --text-mid: #7aa8cc;
+    --text-dim: #3a5a7a;
+    --profit: #00ff9d;
+    --loss: #ff4060;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Noto Sans TC', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-bright);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 100, 180, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 100, 180, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scan line effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 40px 0 32px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .header-badge {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    opacity: 0;
+  }
+
+  .header h1 {
+    font-family: var(--mono);
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: 400;
+    letter-spacing: 6px;
+    color: var(--text-bright);
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+    opacity: 0;
+    position: relative;
+    display: inline-block;
+  }
+
+  .header h1 span {
+    color: var(--accent);
+  }
+
+  .header-line {
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 20px auto 0;
+  }
+
+  .header-sub {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-top: 12px;
+    font-family: var(--mono);
+    opacity: 0;
+  }
+
+  /* Corner decorations */
+  .corner-deco {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    opacity: 0.5;
+  }
+  .corner-deco.tl { top: 0; left: 0; border-top: 1px solid var(--accent); border-left: 1px solid var(--accent); }
+  .corner-deco.tr { top: 0; right: 0; border-top: 1px solid var(--accent); border-right: 1px solid var(--accent); }
+  .corner-deco.bl { bottom: 0; left: 0; border-bottom: 1px solid var(--accent); border-left: 1px solid var(--accent); }
+  .corner-deco.br { bottom: 0; right: 0; border-bottom: 1px solid var(--accent); border-right: 1px solid var(--accent); }
+
+  /* Section panels */
+  .section-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: border-color 0.3s;
+  }
+  .section-panel:hover {
+    border-color: var(--border-glow);
+  }
+  .section-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* Input grid */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field label {
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: var(--text-mid);
+    font-family: var(--mono);
+    text-transform: uppercase;
+  }
+
+  .field-wrap {
+    position: relative;
+  }
+
+  .field-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 18px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 20px;
+    padding: 14px 14px 14px 34px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .field input::-webkit-inner-spin-button,
+  .field input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(0, 212, 255, 0.03);
+    background: rgba(0, 212, 255, 0.04);
+  }
+
+  .field input::placeholder { color: var(--text-dim); }
+
+  .field-hint {
+    font-size: 14px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 20px;
+  }
+  .divider span {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Calculate button */
+  .calc-btn {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 17px;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .calc-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: -1;
+  }
+  .calc-btn:hover {
+    color: var(--bg-deep);
+    box-shadow: 0 0 25px rgba(0, 212, 255, 0.3);
+  }
+  .calc-btn:hover::before { transform: translateX(0); }
+
+  /* Results */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .result-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .result-card:hover {
+    border-color: var(--border-glow);
+    transform: translateY(-2px);
+  }
+  .result-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+    transform-origin: left;
+  }
+  .result-card:hover::after { transform: scaleX(1); }
+
+  .result-card.accent2::after { background: var(--accent2); }
+  .result-card.accent3::after { background: var(--accent3); }
+
+  .result-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .result-value {
+    font-family: var(--mono);
+    font-size: 32px;
+    color: var(--text-bright);
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .result-value.profit { color: var(--profit); }
+  .result-value.loss { color: var(--loss); }
+  .result-value.highlight { color: var(--accent); }
+  .result-value.warn { color: var(--accent3); }
+
+  .result-unit {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Balance point highlight */
+  .balance-card {
+    background: linear-gradient(135deg, var(--bg-panel), rgba(0, 212, 255, 0.05));
+    border-color: rgba(0, 212, 255, 0.3) !important;
+    grid-column: span 2;
+  }
+
+  @media (max-width: 480px) {
+    .balance-card { grid-column: span 1; }
+    .result-grid  { grid-template-columns: repeat(2, 1fr); }
+    .section-row  { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (min-width: 481px) and (max-width: 767px) {
+    .result-grid  { grid-template-columns: repeat(2, 1fr); }
+    .section-row  { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (min-width: 768px) {
+    .result-grid  { grid-template-columns: repeat(3, 1fr); }
+    .section-row  { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (min-width: 1024px) {
+    .result-grid  { grid-template-columns: repeat(3, 1fr); }
+    .section-row  { grid-template-columns: repeat(6, 1fr); }
+    .section-row .result-card { padding: 14px 12px; }
+  }
+
+  .balance-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .balance-big {
+    font-family: var(--mono);
+    font-size: clamp(32px, 6vw, 46px);
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    line-height: 1;
+  }
+
+  .balance-desc {
+    font-size: 16px;
+    color: var(--text-mid);
+    line-height: 1.8;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+  }
+
+  /* Section row for sell results */
+  .section-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  /* Status indicator */
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent2); }
+    50% { opacity: 0.4; box-shadow: none; }
+  }
+
+  .no-result {
+    text-align: center;
+    padding: 40px;
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+  }
+
+  .num-animate {
+    display: inline-block;
+  }
+
+  /* Ticker tape */
+  .ticker {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 16px;
+    display: flex;
+    gap: 24px;
+    overflow: hidden;
+  }
+  .ticker span { white-space: nowrap; }
+  .ticker .up { color: var(--profit); }
+  .ticker .down { color: var(--loss); }
+
+  /* Tooltip */
+  .has-tip { position: relative; cursor: help; }
+  .tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    padding: 8px 12px;
+    border-radius: 2px;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .has-tip:hover .tip { display: block; }
+
+  /* Glow blobs */
+  .glow-blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; }
+  .blob2 { width: 300px; height: 300px; background: var(--accent2); bottom: 100px; left: -100px; }
+</style>
+</head>
+<body>
+<div class="glow-blob blob1"></div>
+<div class="glow-blob blob2"></div>
+
+<div id="app">
+  <div class="app-wrapper">
+
+    <!-- Header -->
+    <div class="header" style="position:relative">
+      <div class="corner-deco tl"></div>
+      <div class="corner-deco tr"></div>
+      <div class="corner-deco bl"></div>
+      <div class="corner-deco br"></div>
+      <div class="header-badge">SYSTEM // FINANCIAL TERMINAL</div>
+      <h1>ETF <span>損益</span> 計算機</h1>
+      <div class="header-line" id="headerLine"></div>
+      <div class="header-sub">EXCHANGE TRADED FUND · COST ANALYSIS · P&amp;L CALCULATOR</div>
+    </div>
+
+    <!-- 本次買入 -->
+    <div class="section-panel" id="panel1">
+      <div class="panel-label">▸ 本次買入資訊</div>
+      <div class="input-grid">
+        <div class="field">
+          <label>買入股價 / 單位</label>
+          <div class="field-wrap">
+            <span class="field-prefix">$</span>
+            <input type="number" v-model.number="buy.price" placeholder="0.00" step="0.01" min="0">
+          </div>
+          <div class="field-hint">每股（單位）買入價格</div>
+        </div>
+        <div class="field">
+          <label>買入張數</label>
+          <div class="field-wrap">
+            <span class="field-prefix">#</span>
+            <input type="number" v-model.number="buy.lots" placeholder="0" step="1" min="0">
+          </div>
+          <div class="field-hint">1張 = 1,000股</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 原有持倉 -->
+    <div class="section-panel" id="panel2">
+      <div class="panel-label">▸ 原有持倉資訊（選填）</div>
+      <div class="input-grid">
+        <div class="field">
+          <label>原持倉總成本</label>
+          <div class="field-wrap">
+            <span class="field-prefix">$</span>
+            <input type="number" v-model.number="hold.totalCost" placeholder="0" step="1" min="0">
+          </div>
+          <div class="field-hint">已扣除手續費的總成本</div>
+        </div>
+        <div class="field">
+          <label>原持倉張數</label>
+          <div class="field-wrap">
+            <span class="field-prefix">#</span>
+            <input type="number" v-model.number="hold.lots" placeholder="0" step="1" min="0">
+          </div>
+          <div class="field-hint">目前持有張數</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 賣出目標 -->
+    <div class="section-panel" id="panel3">
+      <div class="panel-label">▸ 賣出目標設定（選填）</div>
+      <div class="input-grid">
+        <div class="field">
+          <label>預計賣出股價</label>
+          <div class="field-wrap">
+            <span class="field-prefix">$</span>
+            <input type="number" v-model.number="sell.price" placeholder="0.00" step="0.01" min="0">
+          </div>
+          <div class="field-hint">全數賣出時的目標價格</div>
+        </div>
+        <div class="field">
+          <label>手續費折扣</label>
+          <div class="field-wrap">
+            <span class="field-prefix">%</span>
+            <input type="number" v-model.number="feeDiscount" placeholder="100" step="1" min="1" max="100">
+          </div>
+          <div class="field-hint">100 = 不打折，6折填60</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculate button -->
+    <button class="calc-btn" @click="calculate" id="calcBtn">
+      ▶ &nbsp; CALCULATE &nbsp; ▶
+    </button>
+
+    <!-- Results -->
+    <div v-if="result" id="resultsSection">
+
+      <!-- 買入結果 -->
+      <div class="section-panel" style="margin-top:24px; opacity:1; transform:none" id="buyResult">
+        <div class="panel-label"><span class="status-dot"></span>買入分析</div>
+        <div class="result-grid">
+          <div class="result-card">
+            <div class="result-label has-tip">買入手續費 <span class="tip">買入金額 × 0.1425% × 折扣</span></div>
+            <div class="result-value warn" id="val-buyFee">{{ fmt(result.buyFee) }}</div>
+            <div class="result-unit">元（最低 20 元）</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">本次買入總額</div>
+            <div class="result-value highlight" id="val-buyTotal">{{ fmt(result.buyTotal) }}</div>
+            <div class="result-unit">元（含手續費）</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">合併後總成本</div>
+            <div class="result-value highlight" id="val-newTotalCost">{{ fmt(result.newTotalCost) }}</div>
+            <div class="result-unit">元</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">合併後持倉張數</div>
+            <div class="result-value highlight" id="val-totalLots">{{ result.totalLots }}</div>
+            <div class="result-unit">張（{{ fmtInt(result.totalLots * 1000) }} 股）</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">平均成本（每股）</div>
+            <div class="result-value highlight" id="val-avgCost">{{ fmt4(result.avgCost) }}</div>
+            <div class="result-unit">元 / 股</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">平均成本（每張）</div>
+            <div class="result-value" id="val-avgLot">{{ fmt(result.avgCost * 1000) }}</div>
+            <div class="result-unit">元 / 張</div>
+          </div>
+        </div>
+
+        <!-- Balance point -->
+        <div style="margin-top:12px" class="result-grid">
+          <div class="result-card balance-card">
+            <div class="result-label has-tip">損益平衡點（賣出不賠不賺） <span class="tip">含賣出手續費（無折扣）＋證交稅</span></div>
+            <div class="balance-inner">
+              <div>
+                <div class="balance-big" id="val-breakEven">{{ fmt4(result.breakEven) }}</div>
+                <div class="result-unit" style="margin-top:8px">元 / 股</div>
+              </div>
+              <div class="balance-desc">
+                每張需賣 {{ fmt(result.breakEven * 1000) }} 元<br>
+                高於買入均價 {{ fmt4(result.breakEven - result.avgCost) }} 元<br>
+                需漲幅 {{ fmt2((result.breakEven / result.avgCost - 1) * 100) }}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 賣出試算 -->
+      <div v-if="result.hasSell" class="section-panel" style="opacity:1; transform:none" id="sellResult">
+        <div class="panel-label"><span class="status-dot"></span>賣出試算（目標價 {{ fmt4(sell.price) }} 元）</div>
+        <div class="section-row">
+          <div class="result-card accent2">
+            <div class="result-label has-tip">賣出手續費 <span class="tip">賣出金額 × 0.1425% × 折扣</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <div class="result-value warn" id="val-sellFee">{{ fmt(result.sellFee) }}</div>
+              <span v-if="result.sellFeeNoDiscount !== result.sellFee" style="font-family:var(--mono); font-size:15px; color:rgba(255,107,53,0.5)">
+                / {{ fmt(result.sellFeeNoDiscount) }}
+              </span>
+            </div>
+            <div class="result-unit">
+              元（最低 20 元）
+              <span v-if="result.sellFeeNoDiscount !== result.sellFee" style="font-family:var(--mono); font-size:13px; color:var(--text-dim); display:block; margin-top:4px; letter-spacing:1px">
+                ↳ 斜線後為折扣前
+              </span>
+            </div>
+          </div>
+          <div class="result-card accent2">
+            <div class="result-label has-tip">證交稅 <span class="tip">賣出金額 × 0.1%（ETF）</span></div>
+            <div class="result-value warn" id="val-sellTax">{{ fmt(result.sellTax) }}</div>
+            <div class="result-unit">元</div>
+          </div>
+          <div class="result-card accent2">
+            <div class="result-label">賣出總手續費＋稅</div>
+            <div class="result-value warn" id="val-sellCost">{{ fmt(result.sellFee + result.sellTax) }}</div>
+            <div class="result-unit">元</div>
+          </div>
+          <div class="result-card accent2">
+            <div class="result-label">賣出總金額（稅前）</div>
+            <div class="result-value" id="val-sellGross">{{ fmt(result.sellGross) }}</div>
+            <div class="result-unit">元</div>
+          </div>
+          <div class="result-card accent2">
+            <div class="result-label">實際到手淨收入</div>
+            <div class="result-value" :class="result.netIncome >= result.newTotalCost ? 'profit' : 'loss'" id="val-netIncome">
+              {{ fmt(result.netIncome) }}
+            </div>
+            <div class="result-unit">元（扣除手續費＋稅）</div>
+          </div>
+          <div class="result-card accent3" style="background: linear-gradient(135deg, var(--bg-panel), rgba(255,107,53,0.05)); border-color: rgba(255,107,53,0.3) !important;">
+            <div class="result-label">實際損益</div>
+            <div class="result-value" :class="result.pnl >= 0 ? 'profit' : 'loss'" id="val-pnl">
+              {{ result.pnl >= 0 ? '+' : '' }}{{ fmt(result.pnl) }}
+            </div>
+            <div class="result-unit">
+              {{ result.pnl >= 0 ? '↑ 獲利' : '↓ 虧損' }}
+              {{ fmt2(Math.abs(result.pnlPct)) }}%
+            </div>
+          </div>
+        </div>
+
+        <!-- Ticker -->
+        <div class="ticker">
+          <span>買入均價 <span class="up">{{ fmt4(result.avgCost) }}</span></span>
+          <span>賣出目標 <span :class="sell.price >= result.avgCost ? 'up' : 'down'">{{ fmt4(sell.price) }}</span></span>
+          <span>損益平衡 <span class="up">{{ fmt4(result.breakEven) }}</span></span>
+          <span>持倉張數 <span class="up">{{ result.totalLots }}</span></span>
+          <span>淨利率 <span :class="result.pnlPct >= 0 ? 'up' : 'down'">{{ fmt2(result.pnlPct) }}%</span><span v-if="result.sellFeeNoDiscount !== result.sellFee" style="color:rgba(255,107,53,0.5); margin-left:4px">/ {{ fmt2(result.pnlPctNoDiscount) }}%</span></span>
+        </div>
+      </div>
+
+    </div>
+
+    <div v-else class="no-result" id="noResult">
+      ▷ 輸入資料後點擊計算以查看結果
+    </div>
+
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+
+createApp({
+  setup() {
+    const buy = ref({ price: null, lots: null });
+    const hold = ref({ totalCost: 0, lots: 0 });
+    const sell = ref({ price: null });
+    const feeDiscount = ref(100);
+    const result = ref(null);
+
+    function fmt(n) {
+      if (n == null || isNaN(n)) return '—';
+      return Math.round(n).toLocaleString('zh-TW');
+    }
+    function fmt4(n) {
+      if (n == null || isNaN(n)) return '—';
+      return Number(n).toFixed(2);
+    }
+    function fmt2(n) {
+      if (n == null || isNaN(n)) return '—';
+      return Number(n).toFixed(2);
+    }
+    function fmtInt(n) {
+      return Math.round(n).toLocaleString('zh-TW');
+    }
+
+    function calcFee(amount, discount) {
+      const fee = amount * 0.001425 * (discount / 100);
+      return Math.max(20, Math.round(fee));
+    }
+
+    function calculate() {
+      const bp = buy.value.price;
+      const bl = buy.value.lots;
+      if (!bp || !bl || bp <= 0 || bl <= 0) {
+        anime({ targets: '#calcBtn', translateX: [-6, 6, -4, 4, 0], duration: 400, easing: 'easeInOutQuad' });
+        return;
+      }
+
+      const discount = feeDiscount.value || 100;
+      const holdCost = hold.value.totalCost || 0;
+      const holdLots = hold.value.lots || 0;
+
+      const buyGross = bp * bl * 1000;
+      const buyFee = calcFee(buyGross, discount);
+      const buyTotal = buyGross + buyFee;
+
+      const newTotalCost = holdCost + buyTotal;
+      const totalLots = holdLots + bl;
+      const totalShares = totalLots * 1000;
+      const avgCost = newTotalCost / totalShares;
+
+      // Break-even: price where sell nets exactly newTotalCost
+      // 賣出手續費不套折扣（以原始 0.1425% 計算），證交稅 0.1%
+      // newTotalCost = price * totalShares * (1 - 0.001425 - 0.001)
+      const sellCostRate = 0.001425 + 0.001;
+      const breakEven = newTotalCost / (totalShares * (1 - sellCostRate));
+
+      let hasSell = false, sellFee = 0, sellFeeNoDiscount = 0, sellTax = 0, sellGross = 0, netIncome = 0, pnl = 0, pnlPct = 0, pnlPctNoDiscount = 0;
+      if (sell.value.price && sell.value.price > 0) {
+        hasSell = true;
+        const sp = sell.value.price;
+        sellGross = sp * totalShares;
+        sellFee = calcFee(sellGross, discount);
+        sellFeeNoDiscount = calcFee(sellGross, 100);
+        sellTax = Math.floor(sellGross * 0.001); // ETF 0.1%，無條件捨去
+        netIncome = sellGross - sellFee - sellTax;
+        pnl = netIncome - newTotalCost;
+        pnlPct = (pnl / newTotalCost) * 100;
+        const netIncomeNoDiscount = sellGross - sellFeeNoDiscount - sellTax;
+        const pnlNoDiscount = netIncomeNoDiscount - newTotalCost;
+        pnlPctNoDiscount = (pnlNoDiscount / newTotalCost) * 100;
+      }
+
+      result.value = {
+        buyFee, buyTotal, newTotalCost, totalLots, avgCost, breakEven,
+        hasSell, sellFee, sellFeeNoDiscount, sellTax, sellGross, netIncome, pnl, pnlPct, pnlPctNoDiscount
+      };
+
+      // Animate results in
+      setTimeout(() => {
+        anime({
+          targets: '#buyResult, #sellResult',
+          opacity: [0, 1],
+          translateY: [20, 0],
+          duration: 600,
+          easing: 'easeOutExpo',
+          delay: anime.stagger(100)
+        });
+
+        // Animate numbers
+        const numEls = document.querySelectorAll('[id^="val-"]');
+        numEls.forEach(el => {
+          anime({
+            targets: el,
+            opacity: [0, 1],
+            translateY: [8, 0],
+            duration: 400,
+            easing: 'easeOutExpo',
+            delay: Math.random() * 200
+          });
+        });
+      }, 50);
+    }
+
+    return { buy, hold, sell, feeDiscount, result, calculate, fmt, fmt4, fmt2, fmtInt };
+  }
+}).mount('#app');
+
+// Entry animations
+document.addEventListener('DOMContentLoaded', () => {
+  anime.timeline({ easing: 'easeOutExpo' })
+    .add({ targets: '.header-badge', opacity: [0, 1], translateY: [-10, 0], duration: 600 })
+    .add({ targets: 'h1', opacity: [0, 1], duration: 800 }, '-=300')
+    .add({ targets: '#headerLine', width: ['0%', '300px'], duration: 800 }, '-=400')
+    .add({ targets: '.header-sub', opacity: [0, 1], duration: 600 }, '-=400')
+    .add({
+      targets: '.section-panel',
+      opacity: [0, 1],
+      translateY: [30, 0],
+      duration: 700,
+      delay: anime.stagger(120)
+    }, '-=200')
+    .add({ targets: '#calcBtn', opacity: [0, 1], translateY: [20, 0], duration: 500 }, '-=300')
+    .add({ targets: '#noResult', opacity: [0, 1], duration: 400 }, '-=200');
+});
+</script>
+</body>
+</html>
