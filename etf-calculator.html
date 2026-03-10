@@ -297,7 +297,21 @@
   }
   .calc-btn:hover::before { transform: translateX(0); }
 
-  /* Results */
+  .calc-btn.shake-error {
+    border-color: var(--loss) !important;
+    color: var(--loss) !important;
+    box-shadow: 0 0 20px rgba(255, 64, 96, 0.4) !important;
+  }
+  .panel-flash-error {
+    border-color: rgba(255, 64, 96, 0.8) !important;
+    box-shadow: 0 0 16px rgba(255, 64, 96, 0.25) !important;
+    transition: border-color 0.1s, box-shadow 0.1s !important;
+  }
+  .panel-flash-error .panel-label {
+    color: rgba(255, 64, 96, 0.9) !important;
+    transition: color 0.1s !important;
+  }
+
   .result-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -515,7 +529,7 @@
 
     <!-- 本次買入 -->
     <div class="section-panel" id="panel1">
-      <div class="panel-label">▸ 本次買入資訊</div>
+      <div class="panel-label">▸ 本次買入資訊（選填）</div>
       <div class="input-grid">
         <div class="field">
           <label>買入股價 / 單位</label>
@@ -592,25 +606,28 @@
 
       <!-- 買入結果 -->
       <div class="section-panel" style="margin-top:24px; opacity:1; transform:none" id="buyResult">
-        <div class="panel-label"><span class="status-dot"></span>買入分析</div>
+        <div class="panel-label"><span class="status-dot"></span>{{ result.hasBuy ? '買入分析' : '持倉分析' }}</div>
         <div class="result-grid">
+          <!-- 有本次買入時顯示 -->
+          <template v-if="result.hasBuy">
+            <div class="result-card">
+              <div class="result-label has-tip">買入手續費 <span class="tip">買入金額 × 0.1425% × 折扣</span></div>
+              <div class="result-value warn" id="val-buyFee">{{ fmt(result.buyFee) }}</div>
+              <div class="result-unit">元（最低 20 元）</div>
+            </div>
+            <div class="result-card">
+              <div class="result-label">本次買入總額</div>
+              <div class="result-value highlight" id="val-buyTotal">{{ fmt(result.buyTotal) }}</div>
+              <div class="result-unit">元（含手續費）</div>
+            </div>
+          </template>
           <div class="result-card">
-            <div class="result-label has-tip">買入手續費 <span class="tip">買入金額 × 0.1425% × 折扣</span></div>
-            <div class="result-value warn" id="val-buyFee">{{ fmt(result.buyFee) }}</div>
-            <div class="result-unit">元（最低 20 元）</div>
-          </div>
-          <div class="result-card">
-            <div class="result-label">本次買入總額</div>
-            <div class="result-value highlight" id="val-buyTotal">{{ fmt(result.buyTotal) }}</div>
-            <div class="result-unit">元（含手續費）</div>
-          </div>
-          <div class="result-card">
-            <div class="result-label">合併後總成本</div>
+            <div class="result-label">{{ result.hasBuy ? '合併後總成本' : '持倉總成本' }}</div>
             <div class="result-value highlight" id="val-newTotalCost">{{ fmt(result.newTotalCost) }}</div>
             <div class="result-unit">元</div>
           </div>
           <div class="result-card">
-            <div class="result-label">合併後持倉張數</div>
+            <div class="result-label">{{ result.hasBuy ? '合併後持倉張數' : '持倉張數' }}</div>
             <div class="result-value highlight" id="val-totalLots">{{ result.totalLots }}</div>
             <div class="result-unit">張（{{ fmtInt(result.totalLots * 1000) }} 股）</div>
           </div>
@@ -711,7 +728,7 @@
     </div>
 
     <div v-else class="no-result" id="noResult">
-      ▷ 輸入資料後點擊計算以查看結果
+      ▷ 輸入「本次買入」或「原有持倉」資料後點擊計算以查看結果
     </div>
 
   </div>
@@ -752,23 +769,53 @@ createApp({
     function calculate() {
       const bp = buy.value.price;
       const bl = buy.value.lots;
-      if (!bp || !bl || bp <= 0 || bl <= 0) {
-        anime({ targets: '#calcBtn', translateX: [-6, 6, -4, 4, 0], duration: 400, easing: 'easeInOutQuad' });
+      const holdCost = hold.value.totalCost || 0;
+      const holdLots = hold.value.lots || 0;
+
+      // 判斷是否有「本次買入」資料
+      const hasBuy = bp && bl && bp > 0 && bl > 0;
+      // 判斷是否有「原有持倉」資料
+      const hasHold = holdCost > 0 && holdLots > 0;
+
+      // 兩者都沒有，震動提示
+      if (!hasBuy && !hasHold) {
+        const btn = document.getElementById('calcBtn');
+        btn.classList.add('shake-error');
+        setTimeout(() => btn.classList.remove('shake-error'), 700);
+
+        anime({
+          targets: '#calcBtn',
+          translateX: [-12, 12, -9, 9, -6, 6, -3, 3, 0],
+          duration: 600,
+          easing: 'easeInOutQuad'
+        });
+        ['panel1', 'panel2'].forEach(id => {
+          const el = document.getElementById(id);
+          el.classList.add('panel-flash-error');
+          setTimeout(() => el.classList.remove('panel-flash-error'), 700);
+        });
         return;
       }
 
       const discount = feeDiscount.value || 100;
-      const holdCost = hold.value.totalCost || 0;
-      const holdLots = hold.value.lots || 0;
 
-      const buyGross = bp * bl * 1000;
-      const buyFee = calcFee(buyGross, discount);
-      const buyTotal = buyGross + buyFee;
+      let buyFee = 0, buyTotal = 0;
+      let newTotalCost, totalLots, totalShares, avgCost;
 
-      const newTotalCost = holdCost + buyTotal;
-      const totalLots = holdLots + bl;
-      const totalShares = totalLots * 1000;
-      const avgCost = newTotalCost / totalShares;
+      if (hasBuy) {
+        const buyGross = bp * bl * 1000;
+        buyFee = calcFee(buyGross, discount);
+        buyTotal = buyGross + buyFee;
+        newTotalCost = holdCost + buyTotal;
+        totalLots = holdLots + bl;
+      } else {
+        // 純持倉模式：直接用原有持倉
+        newTotalCost = holdCost;
+        totalLots = holdLots;
+      }
+
+      totalShares = totalLots * 1000;
+      avgCost = newTotalCost / totalShares;
 
       // Break-even: price where sell nets exactly newTotalCost
       // 賣出手續費不套折扣（以原始 0.1425% 計算），證交稅 0.1%
@@ -793,6 +840,7 @@ createApp({
       }
 
       result.value = {
+        hasBuy,
         buyFee, buyTotal, newTotalCost, totalLots, avgCost, breakEven,
         hasSell, sellFee, sellFeeNoDiscount, sellTax, sellGross, netIncome, pnl, pnlPct, pnlPctNoDiscount
       };
