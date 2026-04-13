@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ETF 損益計算機</title>
+<title>損益計算機</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -324,7 +324,6 @@
     border-radius: 4px;
     padding: 16px;
     position: relative;
-    overflow: hidden;
     transition: all 0.3s;
   }
   .result-card:hover {
@@ -479,7 +478,7 @@
   .ticker .down { color: var(--loss); }
 
   /* Tooltip */
-  .has-tip { position: relative; cursor: help; }
+  .has-tip { position: relative; cursor: help; display: inline-block; }
   .tip {
     display: none;
     position: absolute;
@@ -490,10 +489,89 @@
     border: 1px solid var(--border-glow);
     padding: 8px 12px;
     border-radius: 2px;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 1px;
+    color: var(--text-mid);
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    text-transform: none;
+  }
+  .tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--border-glow);
   }
   .has-tip:hover .tip { display: block; }
+
+  /* Type toggle */
+  .type-toggle-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .type-toggle-label {
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--text-mid);
+    transition: color 0.3s;
+  }
+  .type-toggle-label.active { color: var(--accent); }
+  .type-toggle-label.active-stock { color: var(--accent2); }
+  .toggle-track {
+    width: 64px;
+    height: 30px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-glow);
+    border-radius: 15px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle-track:hover {
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+  }
+  .toggle-track.stock-mode {
+    border-color: rgba(0,255,157,0.5);
+    box-shadow: 0 0 10px rgba(0,255,157,0.15);
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  }
+  .toggle-track.stock-mode .toggle-thumb {
+    transform: translateX(34px);
+    background: var(--accent2);
+    box-shadow: 0 0 8px rgba(0,255,157,0.5);
+  }
+  .type-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .type-badge.etf { color: var(--accent); border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.08); }
+  .type-badge.stock { color: var(--accent2); border-color: rgba(0,255,157,0.4); background: rgba(0,255,157,0.08); }
 
   /* Glow blobs */
   .glow-blob {
@@ -522,9 +600,21 @@
       <div class="corner-deco bl"></div>
       <div class="corner-deco br"></div>
       <div class="header-badge">SYSTEM // FINANCIAL TERMINAL</div>
-      <h1>ETF <span>損益</span> 計算機</h1>
+      <h1>{{ isStock ? '股票' : 'ETF' }} <span>損益</span> 計算機</h1>
       <div class="header-line" id="headerLine"></div>
-      <div class="header-sub">EXCHANGE TRADED FUND · COST ANALYSIS · P&amp;L CALCULATOR</div>
+      <div class="header-sub">{{ isStock ? 'STOCK · COST ANALYSIS · P&amp;L CALCULATOR' : 'EXCHANGE TRADED FUND · COST ANALYSIS · P&amp;L CALCULATOR' }}</div>
+    </div>
+
+    <!-- 類型切換 -->
+    <div class="type-toggle-wrap">
+      <span class="type-toggle-label" :class="{ active: !isStock }">ETF</span>
+      <div class="toggle-track" :class="{ 'stock-mode': isStock }" @click="isStock = !isStock; result = null">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="type-toggle-label" :class="{ 'active-stock': isStock }">一般股票</span>
+      <span class="type-badge" :class="isStock ? 'stock' : 'etf'">
+        {{ isStock ? '證交稅 0.3%' : '證交稅 0.1%' }}
+      </span>
     </div>
 
     <!-- 本次買入 -->
@@ -682,7 +772,7 @@
             </div>
           </div>
           <div class="result-card accent2">
-            <div class="result-label has-tip">證交稅 <span class="tip">賣出金額 × 0.1%（ETF）</span></div>
+            <div class="result-label has-tip">證交稅 <span class="tip">賣出金額 × {{ isStock ? '0.3%（股票）' : '0.1%（ETF）' }}</span></div>
             <div class="result-value warn" id="val-sellTax">{{ fmt(result.sellTax) }}</div>
             <div class="result-unit">元</div>
           </div>
@@ -743,6 +833,7 @@ createApp({
     const hold = ref({ totalCost: 0, lots: 0 });
     const sell = ref({ price: null });
     const feeDiscount = ref(100);
+    const isStock = ref(false);
     const result = ref(null);
 
     function fmt(n) {
@@ -798,6 +889,7 @@ createApp({
       }
 
       const discount = feeDiscount.value || 100;
+      const taxRate = isStock.value ? 0.003 : 0.001; // 股票0.3%，ETF0.1%
 
       let buyFee = 0, buyTotal = 0;
       let newTotalCost, totalLots, totalShares, avgCost;
@@ -818,9 +910,9 @@ createApp({
       avgCost = newTotalCost / totalShares;
 
       // Break-even: price where sell nets exactly newTotalCost
-      // 賣出手續費不套折扣（以原始 0.1425% 計算），證交稅 0.1%
-      // newTotalCost = price * totalShares * (1 - 0.001425 - 0.001)
-      const sellCostRate = 0.001425 + 0.001;
+      // 賣出手續費不套折扣（以原始 0.1425% 計算），證交稅依類型
+      // newTotalCost = price * totalShares * (1 - 0.001425 - taxRate)
+      const sellCostRate = 0.001425 + taxRate;
       const breakEven = newTotalCost / (totalShares * (1 - sellCostRate));
 
       let hasSell = false, sellFee = 0, sellFeeNoDiscount = 0, sellTax = 0, sellGross = 0, netIncome = 0, pnl = 0, pnlPct = 0, pnlPctNoDiscount = 0;
@@ -830,7 +922,7 @@ createApp({
         sellGross = sp * totalShares;
         sellFee = calcFee(sellGross, discount);
         sellFeeNoDiscount = calcFee(sellGross, 100);
-        sellTax = Math.floor(sellGross * 0.001); // ETF 0.1%，無條件捨去
+        sellTax = Math.floor(sellGross * taxRate); // 依類型，無條件捨去
         netIncome = sellGross - sellFee - sellTax;
         pnl = netIncome - newTotalCost;
         pnlPct = (pnl / newTotalCost) * 100;
@@ -871,7 +963,7 @@ createApp({
       }, 50);
     }
 
-    return { buy, hold, sell, feeDiscount, result, calculate, fmt, fmt4, fmt2, fmtInt };
+    return { buy, hold, sell, feeDiscount, isStock, result, calculate, fmt, fmt4, fmt2, fmtInt };
   }
 }).mount('#app');
 
