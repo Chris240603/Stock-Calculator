@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>股票投資報表系統</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+	<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+	<style>
+		/* ── CSS Variables ── */
+		:root {
+			--bg-base:       #0D1117;
+			--bg-surface:    #161B22;
+			--bg-elevated:   #1C2128;
+			--border:        #21262D;
+			--border-focus:  #388BFD;
+			--text-primary:  #E6EDF3;
+			--text-secondary:#8B949E;
+			--text-muted:    #484F58;
+			--accent:        #58A6FF;
+			--accent-hover:  #79B8FF;
+			--gain:          #3FB950;
+			--gain-bg:       rgba(63,185,80,0.1);
+			--loss:          #F85149;
+			--loss-bg:       rgba(248,81,73,0.1);
+			--neutral:       #8B949E;
+			--warning:       #D29922;
+			--shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+			--shadow-md:     0 4px 12px rgba(0,0,0,0.5);
+			--shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+			--radius-sm:     6px;
+			--radius-md:     10px;
+			--radius-lg:     14px;
+			--font-mono:     'JetBrains Mono', 'Courier New', monospace;
+			--transition:    0.2s ease;
+		}
+		[data-theme="light"] {
+			--bg-base:       #F0F2F5;
+			--bg-surface:    #FFFFFF;
+			--bg-elevated:   #F6F8FA;
+			--border:        #D0D7DE;
+			--border-focus:  #0969DA;
+			--text-primary:  #1F2328;
+			--text-secondary:#656D76;
+			--text-muted:    #AFB8C1;
+			--accent:        #0969DA;
+			--accent-hover:  #0860CA;
+			--gain:          #1A7F37;
+			--gain-bg:       rgba(26,127,55,0.08);
+			--loss:          #CF222E;
+			--loss-bg:       rgba(207,34,46,0.08);
+			--neutral:       #656D76;
+			--warning:       #9A6700;
+			--shadow-sm:     0 1px 3px rgba(0,0,0,0.12);
+			--shadow-md:     0 4px 12px rgba(0,0,0,0.15);
+			--shadow-lg:     0 8px 32px rgba(0,0,0,0.18);
+		}
+
+		/* ── Reset & Base ── */
+		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+		html { font-size: 16px; scroll-behavior: smooth; }
+		body {
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+			background: var(--bg-base);
+			color: var(--text-primary);
+			min-height: 100vh;
+			transition: background var(--transition), color var(--transition);
+			line-height: 1.5;
+		}
+		input, select, button, textarea { font-family: inherit; }
+		input[type="date"]::-webkit-calendar-picker-indicator {
+			filter: invert(0.6);
+			cursor: pointer;
+		}
+		[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+			filter: none;
+		}
+
+		/* ── Layout ── */
+		.app-wrapper { max-width: 1280px; margin: 0 auto; padding: 0 20px 60px; }
+
+		/* ── Header ── */
+		.app-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 20px 0 16px;
+			border-bottom: 1px solid var(--border);
+			margin-bottom: 24px;
+			gap: 16px;
+			flex-wrap: wrap;
+		}
+		.logo-area { display: flex; align-items: center; gap: 12px; }
+		.logo-icon {
+			width: 38px; height: 38px;
+			background: linear-gradient(135deg, var(--accent), #1F6FEB);
+			border-radius: var(--radius-sm);
+			display: flex; align-items: center; justify-content: center;
+			font-size: 18px;
+			box-shadow: 0 0 16px rgba(88,166,255,0.25);
+		}
+		.logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+		.logo-sub { font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+		.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+		/* ── Buttons ── */
+		.btn {
+			display: inline-flex; align-items: center; gap: 7px;
+			padding: 8px 16px; border-radius: var(--radius-sm);
+			font-size: 13px; font-weight: 500; cursor: pointer;
+			border: 1px solid transparent; transition: all var(--transition);
+			white-space: nowrap;
+		}
+		.btn:active { transform: scale(0.97); }
+		.btn-primary {
+			background: var(--accent); color: #fff; border-color: var(--accent);
+		}
+		.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+		.btn-ghost {
+			background: transparent; color: var(--text-secondary);
+			border-color: var(--border);
+		}
+		.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.06); }
+		.btn-danger {
+			background: transparent; color: var(--loss);
+			border-color: var(--border);
+		}
+		.btn-danger:hover { background: var(--loss-bg); border-color: var(--loss); }
+		.btn-success {
+			background: var(--gain); color: #fff; border-color: var(--gain);
+		}
+		.btn-success:hover { opacity: 0.88; }
+		.btn-icon {
+			padding: 8px 10px; font-size: 15px;
+		}
+		.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+		/* ── Theme Toggle ── */
+		.theme-toggle {
+			width: 52px; height: 28px;
+			background: var(--bg-elevated); border: 1px solid var(--border);
+			border-radius: 14px; cursor: pointer;
+			position: relative; transition: all var(--transition);
+			display: flex; align-items: center; padding: 3px;
+		}
+		.theme-toggle-thumb {
+			width: 20px; height: 20px; border-radius: 50%;
+			background: var(--accent);
+			transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+			display: flex; align-items: center; justify-content: center;
+			font-size: 11px;
+			transform: translateX(0);
+		}
+		[data-theme="light"] .theme-toggle-thumb { transform: translateX(24px); }
+
+		/* ── Section header ── */
+		.section-header {
+			display: flex; align-items: center; justify-content: space-between;
+			margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+		}
+		.section-title {
+			font-size: 15px; font-weight: 600; color: var(--text-primary);
+			display: flex; align-items: center; gap: 8px;
+		}
+		.section-title::before {
+			content: ''; width: 3px; height: 16px;
+			background: var(--accent); border-radius: 2px;
+			display: block;
+		}
+
+		/* ── Report Name Bar ── */
+		.report-bar {
+			background: var(--bg-surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			padding: 14px 18px;
+			display: flex; align-items: center; gap: 12px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+		}
+		.report-name-input {
+			flex: 1; min-width: 180px;
+			background: transparent; border: none; outline: none;
+			font-size: 17px; font-weight: 600;
+			color: var(--text-primary);
+		}
+		.report-name-input::placeholder { color: var(--text-muted); font-weight: 400; }
+		.report-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+		/* ── Summary Cards ── */
+		.summary-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+			gap: 12px;
+			margin-bottom: 24px;
+		}
+		.summary-card {
+			background: var(--bg-surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			padding: 16px 18px;
+			position: relative;
+			overflow: hidden;
+			transition: border-color var(--transition);
+		}
+		.summary-card::before {
+			content: '';
+			position: absolute; top: 0; left: 0; right: 0; height: 2px;
+		}
+		.summary-card.gain::before { background: var(--gain); }
+		.summary-card.loss::before { background: var(--loss); }
+		.summary-card.neutral::before { background: var(--accent); }
+		.summary-card.warning::before { background: var(--warning); }
+		.card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+		.card-value {
+			font-family: var(--font-mono);
+			font-size: 22px; font-weight: 700;
+			color: var(--text-primary);
+			transition: color 0.4s ease;
+		}
+		.card-value.is-gain { color: var(--gain); }
+		.card-value.is-loss { color: var(--loss); }
+		.card-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+		/* ── Stock Group ── */
+		.stock-groups { display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px; }
+		.stock-group {
+			background: var(--bg-surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			overflow: hidden;
+			transition: border-color var(--transition);
+		}
+		.stock-group:hover { border-color: rgba(88,166,255,0.35); }
+		.group-header {
+			display: flex; align-items: center; gap: 12px;
+			padding: 14px 18px;
+			border-bottom: 1px solid var(--border);
+			background: var(--bg-elevated);
+			flex-wrap: wrap;
+		}
+		.stock-symbol {
+			font-family: var(--font-mono);
+			font-size: 15px; font-weight: 700;
+			background: rgba(88,166,255,0.12);
+			color: var(--accent);
+			padding: 3px 10px; border-radius: var(--radius-sm);
+			border: 1px solid rgba(88,166,255,0.2);
+		}
+		.stock-name-input {
+			flex: 1; min-width: 120px;
+			background: transparent; border: none; outline: none;
+			font-size: 14px; font-weight: 500;
+			color: var(--text-primary); border-bottom: 1px dashed var(--border);
+			padding: 2px 4px;
+			transition: border-color var(--transition);
+		}
+		.stock-name-input:focus { border-color: var(--accent); }
+		.group-stats {
+			display: flex; align-items: center; gap: 16px;
+			margin-left: auto; flex-wrap: wrap;
+		}
+		.group-stat { text-align: right; }
+		.group-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+		.group-stat-val {
+			font-family: var(--font-mono);
+			font-size: 13px; font-weight: 600;
+		}
+		.group-stat-val.gain { color: var(--gain); }
+		.group-stat-val.loss { color: var(--loss); }
+
+		/* ── Transactions Table ── */
+		.transactions-wrap { overflow-x: auto; }
+		table {
+			width: 100%; border-collapse: collapse; font-size: 13px;
+		}
+		thead th {
+			padding: 10px 14px;
+			text-align: left; font-size: 11px; font-weight: 600;
+			text-transform: uppercase; letter-spacing: 0.5px;
+			color: var(--text-muted);
+			border-bottom: 1px solid var(--border);
+			white-space: nowrap;
+		}
+		tbody tr {
+			border-bottom: 1px solid var(--border);
+			transition: background var(--transition);
+		}
+		tbody tr:last-child { border-bottom: none; }
+		tbody tr:hover { background: var(--bg-elevated); }
+		td { padding: 10px 14px; vertical-align: middle; }
+		.type-badge {
+			display: inline-flex; align-items: center; justify-content: center;
+			padding: 2px 10px; border-radius: 20px;
+			font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+		}
+		.type-buy {
+			background: var(--gain-bg); color: var(--gain);
+			border: 1px solid rgba(63,185,80,0.25);
+		}
+		.type-sell {
+			background: var(--loss-bg); color: var(--loss);
+			border: 1px solid rgba(248,81,73,0.25);
+		}
+		.td-input {
+			background: transparent; border: 1px solid transparent;
+			border-radius: var(--radius-sm);
+			color: var(--text-primary); padding: 5px 8px;
+			font-family: inherit; font-size: 13px;
+			transition: border-color var(--transition), background var(--transition);
+			width: 100%;
+		}
+		.td-input:focus {
+			outline: none; border-color: var(--border-focus);
+			background: var(--bg-elevated);
+		}
+		.td-input.mono { font-family: var(--font-mono); }
+		.td-select {
+			background: var(--bg-elevated); border: 1px solid var(--border);
+			border-radius: var(--radius-sm);
+			color: var(--text-primary); padding: 5px 8px;
+			font-size: 12px; cursor: pointer;
+			transition: border-color var(--transition);
+		}
+		.td-select:focus { outline: none; border-color: var(--border-focus); }
+		.td-mono {
+			font-family: var(--font-mono); font-size: 13px;
+		}
+		.profit-cell { font-family: var(--font-mono); font-weight: 600; }
+		.profit-cell.gain { color: var(--gain); }
+		.profit-cell.loss { color: var(--loss); }
+
+		/* ── Add Row Button ── */
+		.add-row-btn {
+			display: flex; align-items: center; gap: 8px;
+			padding: 12px 18px;
+			color: var(--text-secondary); font-size: 13px;
+			cursor: pointer; border-top: 1px solid var(--border);
+			transition: all var(--transition); width: 100%;
+			background: none; border-left: none; border-right: none; border-bottom: none;
+		}
+		.add-row-btn:hover { background: var(--bg-elevated); color: var(--accent); }
+
+		/* ── Add Stock Area ── */
+		.add-stock-area {
+			background: var(--bg-surface);
+			border: 1px dashed var(--border);
+			border-radius: var(--radius-md);
+			padding: 20px;
+			display: flex; align-items: center; gap: 12px;
+			flex-wrap: wrap; margin-bottom: 24px;
+		}
+		.add-stock-input {
+			background: var(--bg-elevated); border: 1px solid var(--border);
+			border-radius: var(--radius-sm); color: var(--text-primary);
+			padding: 8px 12px; font-size: 13px; font-family: var(--font-mono);
+			text-transform: uppercase; letter-spacing: 1px; width: 140px;
+			transition: border-color var(--transition);
+		}
+		.add-stock-input:focus { outline: none; border-color: var(--border-focus); }
+		.add-stock-input::placeholder { text-transform: none; letter-spacing: 0; font-family: 'Inter', sans-serif; }
+
+		/* ── Per-Stock ROI table ── */
+		.roi-table-wrap {
+			background: var(--bg-surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-md);
+			overflow: hidden;
+			margin-bottom: 24px;
+		}
+
+		/* ── Empty State ── */
+		.empty-state {
+			text-align: center; padding: 48px 24px;
+			color: var(--text-muted);
+		}
+		.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+		.empty-text { font-size: 14px; }
+
+		/* ── Modal ── */
+		.modal-overlay {
+			position: fixed; inset: 0;
+			background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+			display: flex; align-items: center; justify-content: center;
+			z-index: 1000; padding: 20px;
+			animation: fadeIn 0.15s ease;
+		}
+		.modal {
+			background: var(--bg-surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-lg);
+			padding: 28px; width: 100%; max-width: 440px;
+			box-shadow: var(--shadow-lg);
+			animation: slideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+		}
+		.modal-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+		.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+		@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+		@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+		/* ── Form elements in modal ── */
+		.form-group { margin-bottom: 16px; }
+		.form-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; display: block; }
+		.form-input {
+			width: 100%; background: var(--bg-elevated);
+			border: 1px solid var(--border); border-radius: var(--radius-sm);
+			color: var(--text-primary); padding: 9px 12px; font-size: 14px;
+			transition: border-color var(--transition);
+		}
+		.form-input:focus { outline: none; border-color: var(--border-focus); }
+
+		/* ── Toast ── */
+		.toast-wrap {
+			position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+			display: flex; flex-direction: column; gap: 8px;
+		}
+		.toast {
+			background: var(--bg-elevated); border: 1px solid var(--border);
+			border-radius: var(--radius-sm); padding: 12px 16px;
+			font-size: 13px; color: var(--text-primary);
+			box-shadow: var(--shadow-md);
+			display: flex; align-items: center; gap: 10px;
+			animation: slideIn 0.2s ease;
+			max-width: 320px;
+		}
+		.toast.success { border-left: 3px solid var(--gain); }
+		.toast.error { border-left: 3px solid var(--loss); }
+		.toast.info { border-left: 3px solid var(--accent); }
+		@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+		/* ── Tooltip ── */
+		.help-tip {
+			display: inline-flex; align-items: center; justify-content: center;
+			width: 16px; height: 16px; border-radius: 50%;
+			background: var(--bg-elevated); border: 1px solid var(--border);
+			font-size: 10px; color: var(--text-muted); cursor: help;
+			font-style: italic; font-weight: 700;
+		}
+
+		/* ── ROI bar ── */
+		.roi-bar-bg {
+			height: 4px; background: var(--border); border-radius: 2px;
+			overflow: hidden; margin-top: 6px;
+		}
+		.roi-bar-fill {
+			height: 100%; border-radius: 2px;
+			transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+		}
+
+		/* ── File Upload Zone ── */
+		.upload-zone {
+			border: 2px dashed var(--border); border-radius: var(--radius-md);
+			padding: 32px; text-align: center;
+			cursor: pointer; transition: all var(--transition);
+			color: var(--text-secondary);
+		}
+		.upload-zone:hover, .upload-zone.drag-over {
+			border-color: var(--accent); color: var(--accent);
+			background: rgba(88,166,255,0.04);
+		}
+		.upload-zone-icon { font-size: 32px; margin-bottom: 8px; }
+
+		/* ── Responsive ── */
+		@media (max-width: 768px) {
+			.app-wrapper { padding: 0 12px 40px; }
+			.summary-grid { grid-template-columns: repeat(2, 1fr); }
+			.group-stats { display: none; }
+			thead th:nth-child(n+6) { display: none; }
+			td:nth-child(n+6) { display: none; }
+		}
+		@media (max-width: 480px) {
+			.summary-grid { grid-template-columns: 1fr; }
+		}
+
+		/* ── Divider ── */
+		.divider {
+			height: 1px; background: var(--border);
+			margin: 24px 0;
+		}
+
+		/* ── Scrollbar ── */
+		::-webkit-scrollbar { width: 6px; height: 6px; }
+		::-webkit-scrollbar-track { background: transparent; }
+		::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+		::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+		/* ── Animations ── */
+		.fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
+		.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-6px); }
+		.list-enter-active { transition: all 0.25s ease; }
+		.list-leave-active { transition: all 0.2s ease; }
+		.list-enter-from { opacity: 0; transform: translateX(-12px); }
+		.list-leave-to { opacity: 0; transform: translateX(12px); }
+
+		/* ── Drag and Drop ── */
+		.drag-handle {
+			cursor: grab;
+			color: var(--text-muted);
+			padding: 2px 6px;
+			border-radius: var(--radius-sm);
+			font-size: 15px;
+			line-height: 1;
+			transition: color var(--transition), background var(--transition);
+			user-select: none;
+			flex-shrink: 0;
+			display: flex;
+			align-items: center;
+			touch-action: none;
+		}
+		.drag-handle:hover { color: var(--text-secondary); background: rgba(139,148,158,0.1); }
+		.drag-handle:active { cursor: grabbing; }
+		.stock-group.is-dragging {
+			opacity: 0.3;
+			box-shadow: var(--shadow-lg);
+			transition: opacity 0.15s;
+		}
+		.stock-group.drag-over {
+			border-color: var(--accent);
+			box-shadow: 0 -3px 0 0 var(--accent);
+			transition: border-color 0.1s, box-shadow 0.1s;
+		}
+	</style>
+</head>
+<body>
+<div id="app">
+	<div class="app-wrapper">
+
+		<!-- Header -->
+		<header class="app-header">
+			<div class="logo-area">
+				<div class="logo-icon">📈</div>
+				<div>
+					<div class="logo-text">InvestTrack</div>
+					<div class="logo-sub">股票投資報表系統</div>
+				</div>
+			</div>
+			<div class="header-actions">
+				<button class="btn btn-ghost btn-sm" @click="showNewReportModal = true">＋ 新報表</button>
+				<button class="btn btn-ghost btn-sm" @click="triggerFileUpload">📂 載入報表</button>
+				<button class="btn btn-success btn-sm" @click="downloadReport" :disabled="stocks.length === 0">⬇ 下載報表</button>
+				<button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切換亮色模式' : '切換暗色模式'">
+					<div class="theme-toggle-thumb">{{ isDark ? '🌙' : '☀️' }}</div>
+				</button>
+			</div>
+			<input type="file" ref="fileInput" accept=".json" style="display:none" @change="loadReport" />
+		</header>
+
+		<!-- Report Bar -->
+		<div class="report-bar" v-if="reportName !== null">
+			<span style="font-size:13px;color:var(--text-muted)">報表名稱</span>
+			<input class="report-name-input" v-model="reportName" placeholder="未命名報表" />
+			<span class="report-meta">{{ transactions.length }} 筆交易紀錄</span>
+			<span class="report-meta" v-if="lastSaved">最後修改：{{ lastSaved }}</span>
+		</div>
+
+		<!-- Welcome Screen -->
+		<div v-if="!hasReport" style="padding:60px 0;text-align:center">
+			<div style="font-size:56px;margin-bottom:16px">📊</div>
+			<div style="font-size:22px;font-weight:700;margin-bottom:8px">開始追蹤您的投資組合</div>
+			<div style="color:var(--text-secondary);margin-bottom:32px;font-size:15px">建立新報表或載入已存在的報表繼續編輯</div>
+			<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+				<button class="btn btn-primary" @click="showNewReportModal = true" style="font-size:14px;padding:12px 24px">＋ 建立新報表</button>
+				<button class="btn btn-ghost" @click="triggerFileUpload" style="font-size:14px;padding:12px 24px">📂 載入既有報表</button>
+			</div>
+			<div class="upload-zone" style="max-width:400px;margin:40px auto 0" @click="triggerFileUpload"
+				@dragover.prevent="dragOver=true" @dragleave="dragOver=false"
+				@drop.prevent="onDrop" :class="{dragOver}">
+				<div class="upload-zone-icon">📁</div>
+				<div style="font-size:14px;font-weight:500">拖曳 .json 報表至此</div>
+				<div style="font-size:12px;margin-top:4px;color:var(--text-muted)">或點擊選擇檔案</div>
+			</div>
+		</div>
+
+		<!-- Main Content -->
+		<template v-if="hasReport">
+
+			<!-- Summary Cards -->
+			<div class="summary-grid">
+				<div class="summary-card" :class="totalProfit >= 0 ? 'gain' : 'loss'">
+					<div class="card-label">總損益</div>
+					<div class="card-value" :class="totalProfit >= 0 ? 'is-gain' : 'is-loss'" id="anim-profit">
+						{{ formatCurrency(totalProfit) }}
+					</div>
+					<div class="card-sub">已實現損益（含手續費）</div>
+				</div>
+				<div class="summary-card" :class="totalROI >= 0 ? 'gain' : 'loss'">
+					<div class="card-label">整體投報率</div>
+					<div class="card-value" :class="totalROI >= 0 ? 'is-gain' : 'is-loss'" id="anim-roi">
+						{{ formatPct(totalROI) }}
+					</div>
+					<div class="card-sub">（損益 ÷ 投入成本）</div>
+				</div>
+				<div class="summary-card neutral">
+					<div class="card-label">累計投入成本</div>
+					<div class="card-value" id="anim-cost">{{ formatCurrency(totalCost) }}</div>
+					<div class="card-sub">買入總成本（含手續費）</div>
+				</div>
+				<div class="summary-card neutral">
+					<div class="card-label">累計賣出收入</div>
+					<div class="card-value" id="anim-revenue">{{ formatCurrency(totalRevenue) }}</div>
+					<div class="card-sub">賣出總收入（扣手續費）</div>
+				</div>
+				<div class="summary-card" :class="unrealizedProfit >= 0 ? 'gain' : 'loss'">
+					<div class="card-label">持倉未實現損益</div>
+					<div class="card-value" :class="unrealizedProfit >= 0 ? 'is-gain' : 'is-loss'" id="anim-unrealized">
+						{{ formatCurrency(unrealizedProfit) }}
+					</div>
+					<div class="card-sub">{{ holdingShares }} 股持倉</div>
+				</div>
+				<div class="summary-card warning">
+					<div class="card-label">交易筆數</div>
+					<div class="card-value">{{ transactions.length }}</div>
+					<div class="card-sub">買入 {{ buyCount }} 筆 ／ 賣出 {{ sellCount }} 筆</div>
+				</div>
+			</div>
+
+			<!-- Per Stock ROI -->
+			<div class="section-header">
+				<div class="section-title">個股分析</div>
+			</div>
+			<div class="roi-table-wrap" v-if="stocks.length > 0">
+				<table>
+					<thead>
+						<tr>
+							<th>股票代號</th>
+							<th>股票名稱</th>
+							<th>買入成本</th>
+							<th>賣出收入</th>
+							<th>損益</th>
+							<th>投報率</th>
+							<th>持倉股數</th>
+							<th>持倉成本</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="s in stockSummaries" :key="s.symbol">
+							<td><span class="stock-symbol">{{ s.symbol }}</span></td>
+							<td style="color:var(--text-secondary)">{{ s.name || '—' }}</td>
+							<td class="td-mono">{{ formatCurrency(s.totalBuyCost) }}</td>
+							<td class="td-mono">{{ formatCurrency(s.totalSellRevenue) }}</td>
+							<td class="profit-cell" :class="s.profit >= 0 ? 'gain' : 'loss'">
+								{{ formatCurrency(s.profit) }}
+							</td>
+							<td>
+								<div style="min-width:90px">
+									<span class="profit-cell" :class="s.roi >= 0 ? 'gain' : 'loss'">{{ formatPct(s.roi) }}</span>
+									<div class="roi-bar-bg">
+										<div class="roi-bar-fill"
+											:style="{width: Math.min(Math.abs(s.roi),100)+'%', background: s.roi>=0 ? 'var(--gain)' : 'var(--loss)'}">
+										</div>
+									</div>
+								</div>
+							</td>
+							<td class="td-mono">{{ s.holdingShares }}</td>
+							<td class="td-mono">{{ s.holdingShares > 0 ? formatCurrency(s.holdingCost) : '—' }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Transaction Records -->
+			<div class="section-header">
+				<div class="section-title">交易紀錄</div>
+				<button class="btn btn-ghost btn-sm" @click="showAddStockInput = !showAddStockInput">
+					＋ 新增股票
+				</button>
+			</div>
+
+			<!-- Add Stock Input -->
+			<transition name="fade">
+				<div class="add-stock-area" v-if="showAddStockInput">
+					<input class="add-stock-input" v-model="newStockSymbol" placeholder="股票代號 (如 2330)" maxlength="8"
+						@keyup.enter="addStock" />
+					<input class="form-input" v-model="newStockName" placeholder="公司名稱 (如 台積電)" style="width:160px;font-size:13px"
+						@keyup.enter="addStock" />
+					<button class="btn btn-primary btn-sm" @click="addStock">確認新增</button>
+					<button class="btn btn-ghost btn-sm" @click="showAddStockInput = false; newStockSymbol = ''; newStockName = ''">取消</button>
+				</div>
+			</transition>
+
+			<!-- Stock Groups -->
+			<div class="stock-groups">
+				<transition-group name="list">
+					<div class="stock-group"
+						v-for="stock in stocks" :key="stock.symbol"
+						draggable="true"
+						:class="{ 'is-dragging': dragState.draggingSymbol === stock.symbol, 'drag-over': dragState.overSymbol === stock.symbol && dragState.draggingSymbol !== stock.symbol }"
+						@dragstart="onDragStart($event, stock.symbol)"
+						@dragover.prevent="onDragOver($event, stock.symbol)"
+						@dragleave="onDragLeave"
+						@drop.prevent="onStockDrop($event, stock.symbol)"
+						@dragend="onDragEnd">
+						<div class="group-header">
+							<span class="drag-handle" title="拖曳排序">⠿</span>
+							<span class="stock-symbol">{{ stock.symbol }}</span>
+							<input class="stock-name-input" v-model="stock.name" :placeholder="stock.symbol + ' 公司名稱'" />
+							<div class="group-stats">
+								<div class="group-stat">
+									<div class="group-stat-label">損益</div>
+									<div class="group-stat-val" :class="getStockSummary(stock.symbol).profit >= 0 ? 'gain' : 'loss'">
+										{{ formatCurrency(getStockSummary(stock.symbol).profit) }}
+									</div>
+								</div>
+								<div class="group-stat">
+									<div class="group-stat-label">投報率</div>
+									<div class="group-stat-val" :class="getStockSummary(stock.symbol).roi >= 0 ? 'gain' : 'loss'">
+										{{ formatPct(getStockSummary(stock.symbol).roi) }}
+									</div>
+								</div>
+								<div class="group-stat" v-if="getStockSummary(stock.symbol).holdingShares > 0">
+									<div class="group-stat-label">持倉</div>
+									<div class="group-stat-val" style="color:var(--text-secondary)">
+										{{ getStockSummary(stock.symbol).holdingShares }} 股
+									</div>
+								</div>
+							</div>
+							<button class="btn btn-danger btn-sm btn-icon" @click="removeStock(stock.symbol)" title="刪除此股票">🗑</button>
+						</div>
+
+						<div class="transactions-wrap">
+							<table v-if="getStockTransactions(stock.symbol).length > 0">
+								<thead>
+									<tr>
+										<th>類型</th>
+										<th>日期</th>
+										<th>成交價 (元)</th>
+										<th>股數</th>
+										<th>手續費 (元)</th>
+										<th>含費總額</th>
+										<th>備註</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="tx in getStockTransactions(stock.symbol)" :key="tx.id">
+										<td>
+											<select class="td-select" v-model="tx.type" @change="markDirty">
+												<option value="buy">買入</option>
+												<option value="sell">賣出</option>
+											</select>
+										</td>
+										<td>
+											<input type="date" class="td-input" v-model="tx.date" @change="markDirty" />
+										</td>
+										<td>
+											<input type="number" class="td-input mono" v-model.number="tx.price"
+												min="0" step="0.01" @input="markDirty" placeholder="0.00" style="width:90px" />
+										</td>
+										<td>
+											<input type="number" class="td-input mono" v-model.number="tx.shares"
+												min="1" step="1" @input="markDirty" placeholder="0" style="width:70px" />
+										</td>
+										<td>
+											<input type="number" class="td-input mono" v-model.number="tx.fee"
+												min="0" step="1" @input="markDirty" placeholder="0" style="width:80px" />
+										</td>
+										<td class="td-mono" style="white-space:nowrap">
+											<span :class="tx.type==='buy' ? 'profit-cell loss' : 'profit-cell gain'">
+												{{ formatCurrency(calcTotal(tx)) }}
+											</span>
+										</td>
+										<td>
+											<input type="text" class="td-input" v-model="tx.note"
+												@input="markDirty" placeholder="備註…" style="min-width:80px" />
+										</td>
+										<td>
+											<button class="btn btn-danger btn-sm btn-icon"
+												@click="removeTransaction(tx.id)" title="刪除此筆">×</button>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<div v-else class="empty-state" style="padding:24px">
+								<div style="color:var(--text-muted);font-size:13px">尚無交易紀錄，請點下方按鈕新增</div>
+							</div>
+						</div>
+						<button class="add-row-btn" @click="addTransaction(stock.symbol)">
+							＋ 新增 {{ stock.symbol }} 交易紀錄
+						</button>
+					</div>
+				</transition-group>
+			</div>
+
+			<div v-if="stocks.length === 0" class="empty-state">
+				<div class="empty-icon">📋</div>
+				<div class="empty-text">還沒有股票，點擊上方「新增股票」開始建立紀錄</div>
+			</div>
+
+			<!-- Notes Section -->
+			<div class="section-header" style="margin-top:8px">
+				<div class="section-title">報表備註</div>
+			</div>
+			<textarea class="form-input" v-model="reportNotes" placeholder="在此輸入報表備註、投資策略、提醒事項…"
+				rows="4" style="resize:vertical;border-radius:var(--radius-md)" @input="markDirty"></textarea>
+
+		</template>
+
+	</div><!-- /app-wrapper -->
+
+	<!-- New Report Modal -->
+	<transition name="fade">
+		<div class="modal-overlay" v-if="showNewReportModal" @click.self="showNewReportModal = false">
+			<div class="modal">
+				<div class="modal-title">建立新報表</div>
+				<div class="form-group">
+					<label class="form-label">報表名稱</label>
+					<input class="form-input" v-model="newReportName" placeholder="例：2024 年度投資報表"
+						@keyup.enter="createNewReport" autofocus />
+				</div>
+				<div style="font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--bg-elevated);border-radius:var(--radius-sm)">
+					⚠️ 建立新報表將清除目前的資料（如需保留請先下載）
+				</div>
+				<div class="modal-actions">
+					<button class="btn btn-ghost" @click="showNewReportModal = false">取消</button>
+					<button class="btn btn-primary" @click="createNewReport">建立報表</button>
+				</div>
+			</div>
+		</div>
+	</transition>
+
+	<!-- JSON Export Fallback Modal -->
+	<transition name="fade">
+		<div class="modal-overlay" v-if="showJsonModal" @click.self="showJsonModal = false">
+			<div class="modal" style="max-width:600px">
+				<div class="modal-title">💾 儲存報表</div>
+				<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;line-height:1.7">
+					請點擊「複製全部」，然後開啟文字編輯器（記事本、VS Code 等），貼上內容後另存為：
+				</div>
+				<div style="font-family:var(--font-mono);font-size:13px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;color:var(--accent);word-break:break-all;">
+					{{ exportedFilename }}
+				</div>
+				<textarea
+					readonly
+					:value="exportedJson"
+					style="width:100%;height:220px;resize:vertical;font-family:var(--font-mono);font-size:11px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-secondary);padding:10px;line-height:1.5;outline:none"
+					@click="$event.target.select()"
+				></textarea>
+				<div style="font-size:11px;color:var(--text-muted);margin-top:6px">點擊文字區域可全選</div>
+				<div class="modal-actions">
+					<button class="btn btn-ghost" @click="showJsonModal = false">關閉</button>
+					<button class="btn btn-primary" @click="copyJson">📋 複製全部</button>
+				</div>
+			</div>
+		</div>
+	</transition>
+
+	<div class="toast-wrap">
+		<transition-group name="list">
+			<div class="toast" :class="t.type" v-for="t in toasts" :key="t.id">
+				<span>{{ t.icon }}</span>
+				<span>{{ t.msg }}</span>
+			</div>
+		</transition-group>
+	</div>
+
+</div><!-- /app -->
+
+<script>
+const { createApp, ref, computed, watch, nextTick, onMounted } = Vue;
+
+createApp({
+	setup() {
+		// ── State ──
+		const isDark = ref(true);
+		const hasReport = ref(false);
+		const reportName = ref(null);
+		const reportNotes = ref('');
+		const lastSaved = ref('');
+		const stocks = ref([]);
+		const transactions = ref([]);
+		const showNewReportModal = ref(false);
+		const showAddStockInput = ref(false);
+		const newStockSymbol = ref('');
+		const newStockName = ref('');
+		const newReportName = ref('');
+		const fileInput = ref(null);
+		const toasts = ref([]);
+		const dragOver = ref(false);  // for upload zone
+		const showJsonModal = ref(false);
+		const dragState = ref({ draggingSymbol: null, overSymbol: null });
+		const exportedJson = ref('');
+		const exportedFilename = ref('');
+		let txIdCounter = 1;
+
+		// ── Theme ──
+		const toggleTheme = () => {
+			isDark.value = !isDark.value;
+			document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+		};
+
+		// ── Toast ──
+		const addToast = (msg, type = 'info', icon = 'ℹ️') => {
+			const id = Date.now();
+			toasts.value.push({ id, msg, type, icon });
+			setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3500);
+		};
+
+		// ── Format Helpers ──
+		const formatCurrency = (val) => {
+			if (val === undefined || val === null || isNaN(val)) return '—';
+			const abs = Math.abs(val);
+			const str = abs.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+			return (val < 0 ? '−$' : '$') + str;
+		};
+		const formatPct = (val) => {
+			if (val === undefined || val === null || isNaN(val) || !isFinite(val)) return '—';
+			return (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+		};
+
+		// ── Transaction Calc ──
+		const calcTotal = (tx) => {
+			const base = (tx.price || 0) * (tx.shares || 0);
+			const fee = tx.fee || 0;
+			return tx.type === 'buy' ? base + fee : base - fee;
+		};
+
+		// ── Derived ──
+		const getStockTransactions = (symbol) =>
+			transactions.value.filter(tx => tx.symbol === symbol)
+				.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+		const getStockSummary = (symbol) => {
+			const txs = getStockTransactions(symbol);
+			let totalBuyCost = 0, totalSellRevenue = 0;
+			let holdingShares = 0, holdingCost = 0;
+
+			for (const tx of txs) {
+				const total = calcTotal(tx);
+				if (tx.type === 'buy') {
+					totalBuyCost += total;
+					holdingShares += (tx.shares || 0);
+					holdingCost += total;
+				} else {
+					totalSellRevenue += total;
+					// FIFO: average cost basis
+					const avgCost = holdingShares > 0 ? holdingCost / holdingShares : 0;
+					const soldCost = avgCost * (tx.shares || 0);
+					holdingCost -= soldCost;
+					holdingShares -= (tx.shares || 0);
+					if (holdingShares < 0) holdingShares = 0;
+					if (holdingCost < 0) holdingCost = 0;
+				}
+			}
+			const profit = totalSellRevenue - totalBuyCost + (holdingShares > 0 ? 0 : 0);
+			// Realized profit = sell revenue - cost of sold shares
+			const soldCostTotal = totalBuyCost - holdingCost;
+			const realizedProfit = totalSellRevenue - soldCostTotal;
+			const roi = soldCostTotal > 0 ? (realizedProfit / soldCostTotal) * 100 : 0;
+			return {
+				symbol, totalBuyCost, totalSellRevenue,
+				profit: realizedProfit,
+				roi, holdingShares,
+				holdingCost: holdingCost
+			};
+		};
+
+		const stockSummaries = computed(() => stocks.value.map(s => ({
+			...getStockSummary(s.symbol),
+			name: s.name
+		})));
+
+		const totalCost = computed(() => {
+			return transactions.value.filter(t => t.type === 'buy')
+				.reduce((sum, t) => sum + calcTotal(t), 0);
+		});
+		const totalRevenue = computed(() => {
+			return transactions.value.filter(t => t.type === 'sell')
+				.reduce((sum, t) => sum + calcTotal(t), 0);
+		});
+		const totalProfit = computed(() => {
+			return stockSummaries.value.reduce((sum, s) => sum + s.profit, 0);
+		});
+		const totalROI = computed(() => {
+			const cost = stockSummaries.value.reduce((sum, s) => {
+				const soldCost = s.totalBuyCost - s.holdingCost;
+				return sum + soldCost;
+			}, 0);
+			return cost > 0 ? (totalProfit.value / cost) * 100 : 0;
+		});
+		const unrealizedProfit = computed(() => {
+			return stockSummaries.value.reduce((sum, s) => sum + (s.holdingCost > 0 ? -s.holdingCost : 0), 0);
+		});
+		const holdingShares = computed(() =>
+			stockSummaries.value.reduce((sum, s) => sum + s.holdingShares, 0)
+		);
+		const buyCount = computed(() => transactions.value.filter(t => t.type === 'buy').length);
+		const sellCount = computed(() => transactions.value.filter(t => t.type === 'sell').length);
+
+		// ── Anime.js count-up ──
+		let animTimeout = null;
+		const animateNumbers = () => {
+			if (animTimeout) clearTimeout(animTimeout);
+			animTimeout = setTimeout(() => {
+				const targets = [
+					{ id: 'anim-profit', val: totalProfit.value, isCurrency: true },
+					{ id: 'anim-roi', val: totalROI.value, isCurrency: false },
+					{ id: 'anim-cost', val: totalCost.value, isCurrency: true },
+					{ id: 'anim-revenue', val: totalRevenue.value, isCurrency: true },
+					{ id: 'anim-unrealized', val: unrealizedProfit.value, isCurrency: true },
+				];
+				targets.forEach(({ id, val, isCurrency }) => {
+					const el = document.getElementById(id);
+					if (!el) return;
+					anime({
+						targets: { n: 0 },
+						n: val,
+						duration: 800,
+						easing: 'easeOutExpo',
+						update(anim) {
+							const v = anim.animations[0].currentValue;
+							if (isCurrency) {
+								el.textContent = formatCurrency(v);
+							} else {
+								el.textContent = formatPct(v);
+							}
+						}
+					});
+				});
+			}, 100);
+		};
+
+		watch([totalProfit, totalROI, totalCost, totalRevenue], animateNumbers);
+
+		// ── CRUD ──
+		const addStock = () => {
+			const sym = newStockSymbol.value.trim().toUpperCase();
+			if (!sym) { addToast('請輸入股票代號', 'error', '❌'); return; }
+			if (stocks.value.find(s => s.symbol === sym)) {
+				addToast(`${sym} 已存在`, 'error', '❌'); return;
+			}
+			stocks.value.push({ symbol: sym, name: newStockName.value.trim() });
+			newStockSymbol.value = '';
+			newStockName.value = '';
+			showAddStockInput.value = false;
+			addToast(`已新增 ${sym}`, 'success', '✅');
+			markDirty();
+		};
+
+		const removeStock = (symbol) => {
+			if (!confirm(`確定要刪除 ${symbol} 及其所有交易紀錄？`)) return;
+			stocks.value = stocks.value.filter(s => s.symbol !== symbol);
+			transactions.value = transactions.value.filter(t => t.symbol !== symbol);
+			addToast(`已刪除 ${symbol}`, 'info', '🗑️');
+			markDirty();
+		};
+
+		const addTransaction = (symbol) => {
+			const today = new Date().toISOString().split('T')[0];
+			transactions.value.push({
+				id: txIdCounter++,
+				symbol,
+				type: 'buy',
+				date: today,
+				price: null,
+				shares: null,
+				fee: 0,
+				note: ''
+			});
+			markDirty();
+		};
+
+		const removeTransaction = (id) => {
+			transactions.value = transactions.value.filter(t => t.id !== id);
+			markDirty();
+		};
+
+		// ── Report lifecycle ──
+		const markDirty = () => {
+			lastSaved.value = new Date().toLocaleTimeString('zh-TW');
+		};
+
+		const createNewReport = () => {
+			reportName.value = newReportName.value || '未命名報表';
+			reportNotes.value = '';
+			stocks.value = [];
+			transactions.value = [];
+			txIdCounter = 1;
+			hasReport.value = true;
+			showNewReportModal.value = false;
+			newReportName.value = '';
+			lastSaved.value = new Date().toLocaleTimeString('zh-TW');
+			addToast('已建立新報表', 'success', '✅');
+			nextTick(animateNumbers);
+		};
+
+		const downloadReport = () => {
+			const data = {
+				version: '1.0',
+				reportName: reportName.value,
+				reportNotes: reportNotes.value,
+				exportedAt: new Date().toISOString(),
+				stocks: stocks.value,
+				transactions: transactions.value,
+				summary: {
+					totalCost: totalCost.value,
+					totalRevenue: totalRevenue.value,
+					totalProfit: totalProfit.value,
+					totalROI: totalROI.value
+				}
+			};
+			const json = JSON.stringify(data, null, 2);
+			const filename = `${reportName.value || '投資報表'}_${new Date().toISOString().split('T')[0]}.json`;
+
+			// 方法一：File System Access API（Chrome/Edge，本地或 HTTPS 皆可）
+			if (window.showSaveFilePicker) {
+				window.showSaveFilePicker({
+					suggestedName: filename,
+					types: [{ description: 'JSON 報表', accept: { 'application/json': ['.json'] } }]
+				}).then(async (fileHandle) => {
+					const writable = await fileHandle.createWritable();
+					await writable.write(json);
+					await writable.close();
+					addToast('報表已儲存', 'success', '⬇️');
+				}).catch((err) => {
+					if (err.name !== 'AbortError') {
+						exportedJson.value = json;
+						exportedFilename.value = filename;
+						showJsonModal.value = true;
+					}
+				});
+				return;
+			}
+
+			// 方法二：彈窗顯示 JSON，讓使用者手動複製存檔
+			exportedJson.value = json;
+			exportedFilename.value = filename;
+			showJsonModal.value = true;
+		};
+
+		const triggerFileUpload = () => fileInput.value?.click();
+
+		const loadReportData = (data) => {
+			try {
+				if (!data.stocks || !data.transactions) throw new Error('格式錯誤');
+				reportName.value = data.reportName || '載入的報表';
+				reportNotes.value = data.reportNotes || '';
+				stocks.value = data.stocks;
+				transactions.value = data.transactions;
+				txIdCounter = Math.max(0, ...transactions.value.map(t => t.id || 0)) + 1;
+				hasReport.value = true;
+				lastSaved.value = new Date().toLocaleTimeString('zh-TW');
+				addToast(`已載入：${reportName.value}`, 'success', '📂');
+				nextTick(animateNumbers);
+			} catch (e) {
+				addToast('檔案格式不正確', 'error', '❌');
+			}
+		};
+
+		const loadReport = (e) => {
+			const file = e.target.files[0];
+			if (!file) return;
+			const reader = new FileReader();
+			reader.onload = (ev) => {
+				try {
+					loadReportData(JSON.parse(ev.target.result));
+				} catch { addToast('無法解析 JSON 檔案', 'error', '❌'); }
+			};
+			reader.readAsText(file);
+			e.target.value = '';
+		};
+
+		const onDrop = (e) => {
+			dragOver.value = false;
+			const file = e.dataTransfer.files[0];
+			if (!file || !file.name.endsWith('.json')) {
+				addToast('請拖入 .json 檔案', 'error', '❌'); return;
+			}
+			const reader = new FileReader();
+			reader.onload = (ev) => {
+				try { loadReportData(JSON.parse(ev.target.result)); }
+				catch { addToast('無法解析 JSON 檔案', 'error', '❌'); }
+			};
+			reader.readAsText(file);
+		};
+
+		// ── Drag to Reorder ──
+		const onDragStart = (e, symbol) => {
+			dragState.value.draggingSymbol = symbol;
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', symbol);
+		};
+
+		const onDragOver = (e, symbol) => {
+			e.dataTransfer.dropEffect = 'move';
+			dragState.value.overSymbol = symbol;
+		};
+
+		const onDragLeave = () => {
+			dragState.value.overSymbol = null;
+		};
+
+		const onDragEnd = () => {
+			dragState.value.draggingSymbol = null;
+			dragState.value.overSymbol = null;
+		};
+
+		const onStockDrop = (e, targetSymbol) => {
+			const fromSymbol = dragState.value.draggingSymbol;
+			if (!fromSymbol || fromSymbol === targetSymbol) {
+				onDragEnd();
+				return;
+			}
+			const arr = [...stocks.value];
+			const fromIdx = arr.findIndex(s => s.symbol === fromSymbol);
+			const toIdx = arr.findIndex(s => s.symbol === targetSymbol);
+			if (fromIdx === -1 || toIdx === -1) { onDragEnd(); return; }
+			// Splice from position, insert at target
+			const [item] = arr.splice(fromIdx, 1);
+			arr.splice(toIdx, 0, item);
+			stocks.value = arr;
+			onDragEnd();
+			markDirty();
+		};
+
+		const copyJson = () => {
+			navigator.clipboard.writeText(exportedJson.value).then(() => {
+				addToast('已複製到剪貼簿', 'success', '📋');
+			}).catch(() => {
+				addToast('請手動全選複製', 'info', 'ℹ️');
+			});
+		};
+
+		window.addEventListener('beforeunload', () => {
+			stocks.value = [];
+			transactions.value = [];
+		});
+
+		return {
+			isDark, toggleTheme,
+			hasReport, reportName, reportNotes, lastSaved,
+			stocks, transactions,
+			showNewReportModal, newReportName,
+			showAddStockInput, newStockSymbol, newStockName,
+			fileInput, toasts, dragOver, showJsonModal, exportedJson, exportedFilename,
+			// Methods
+			addStock, removeStock, addTransaction, removeTransaction,
+			createNewReport, downloadReport, triggerFileUpload, loadReport, onDrop,
+			dragState, onDragStart, onDragOver, onDragLeave, onDragEnd, onStockDrop,
+			markDirty, copyJson,
+			// Computed
+			stockSummaries, totalCost, totalRevenue, totalProfit, totalROI,
+			unrealizedProfit, holdingShares, buyCount, sellCount,
+			// Helpers
+			formatCurrency, formatPct, calcTotal,
+			getStockTransactions, getStockSummary,
+		};
+	}
+}).mount('#app');
+</script>
+</body>
+</html>
