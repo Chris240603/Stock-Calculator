@@ -14,12 +14,12 @@
 	   TOKENS — Dark (default)
 	═══════════════════════════════════════════════ */
 	:root {
-		--bg:           #080808;
-		--bg-1:         #0f0f0f;
-		--bg-2:         #141414;
-		--bg-3:         #1a1a1a;
-		--line:         rgba(255,255,255,0.07);
-		--line-strong:  rgba(255,255,255,0.12);
+		--bg:           #090909;
+		--bg-1:         #131313;
+		--bg-2:         #1c1c1c;
+		--bg-3:         #242424;
+		--line:         rgba(255,255,255,0.11);
+		--line-strong:  rgba(255,255,255,0.22);
 		--txt:          #f0f0f0;
 		--txt-2:        #aaa;
 		--txt-3:        #6b6b6b;
@@ -29,6 +29,9 @@
 		--gain-bg:      rgba(255,82,82,0.09);
 		--loss:         #2ecc71;
 		--loss-bg:      rgba(46,204,113,0.09);
+		--danger:       #e05252;
+		--danger-dim:   rgba(224,82,82,0.10);
+		--danger-border:rgba(224,82,82,0.30);
 		--mono:         'JetBrains Mono', monospace;
 		--sans:         'Space Grotesk', 'Inter', sans-serif;
 		--ease:         cubic-bezier(0.16,1,0.3,1);
@@ -50,6 +53,9 @@
 		--gain-bg:      rgba(220,38,38,0.08);
 		--loss:         #16a34a;
 		--loss-bg:      rgba(22,163,74,0.08);
+		--danger:       #dc2626;
+		--danger-dim:   rgba(220,38,38,0.08);
+		--danger-border:rgba(220,38,38,0.28);
 	}
 
 	/* ═══════════════════════════════════════════════
@@ -135,24 +141,24 @@
 		font-size:12px; font-weight:600;
 		letter-spacing:0.4px; text-transform:uppercase;
 		border:1px solid var(--line-strong);
-		background:transparent; color:var(--txt-2);
+		background:var(--bg-2); color:var(--txt);
 		cursor:pointer; transition:all var(--t);
 		white-space:nowrap;
 	}
-	.btn:hover { border-color:var(--txt-3); color:var(--txt); background:var(--bg-2); }
+	.btn:hover { border-color:var(--txt-2); color:var(--txt); background:var(--bg-3); }
 	.btn:active { transform:scale(0.97); }
 
 	.btn-accent {
 		background:var(--accent); color:var(--bg); border-color:var(--accent);
 	}
-	.btn-accent:hover { opacity:0.88; color:var(--bg); }
+	.btn-accent:hover { opacity:0.88; color:var(--bg); background:var(--accent); border-color:var(--accent); }
 
 	.btn-dim {
 		background:var(--bg-2); border-color:var(--line-strong);
 	}
 
-	.btn-danger { color:var(--loss); }
-	.btn-danger:hover { background:var(--loss-bg); border-color:var(--loss); color:var(--loss); }
+	.btn-danger { color:var(--danger); background:var(--danger-dim); border-color:var(--danger-border); }
+	.btn-danger:hover { background:var(--danger); border-color:var(--danger); color:#fff; }
 
 	.btn-icon { padding:8px; }
 
@@ -246,6 +252,7 @@
 		border-bottom:1px solid var(--line-strong);
 		padding:22px 20px 18px;
 		position:relative; overflow:hidden;
+		background:var(--bg-1);
 		transition:background var(--t);
 		min-width:0;
 	}
@@ -263,7 +270,6 @@
 		transition:color 0.4s;
 		white-space:nowrap;
 		overflow:hidden;
-		text-overflow:ellipsis;
 	}
 	.kpi-value.gain { color:var(--gain); }
 	.kpi-value.loss { color:var(--loss); }
@@ -293,6 +299,7 @@
 	═══════════════════════════════════════════════ */
 	.analysis-wrap {
 		border:1px solid var(--line-strong);
+		background:var(--bg-1);
 		margin-bottom:56px; overflow-x:auto;
 	}
 	.analysis-wrap table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -303,7 +310,7 @@
 		color:var(--txt-2); border-bottom:1px solid var(--line-strong);
 		white-space:nowrap; background:var(--bg-1);
 	}
-	.analysis-wrap tbody tr { border-bottom:1px solid var(--line); transition:background var(--t); }
+	.analysis-wrap tbody tr { border-bottom:1px solid var(--line); background:var(--bg-1); transition:background var(--t); }
 	.analysis-wrap tbody tr:last-child { border-bottom:none; }
 	.analysis-wrap tbody tr:hover { background:var(--bg-2); }
 	.analysis-wrap td { padding:14px 16px; vertical-align:middle; }
@@ -327,11 +334,12 @@
 	/* ═══════════════════════════════════════════════
 	   STOCK CARDS
 	═══════════════════════════════════════════════ */
-	.cards { display:flex; flex-direction:column; gap:1px; margin-bottom:56px; }
+	.cards { display:flex; flex-direction:column; gap:16px; margin-bottom:56px; }
 
 	/* Outer wrapper handles drag highlight without affecting inner border */
 	.card-outer {
 		border:1px solid var(--line-strong);
+		background:var(--bg-1);
 		transition:border-color var(--t), box-shadow var(--t);
 	}
 	.card-outer.drag-over {
@@ -346,6 +354,8 @@
 		border-bottom:1px solid var(--line);
 		background:var(--bg-1);
 		flex-wrap:wrap;
+		cursor:pointer;
+		user-select:none;
 	}
 	.drag-handle {
 		color:var(--txt-3); cursor:grab; padding:2px 4px;
@@ -356,6 +366,17 @@
 	.drag-handle:hover { color:var(--txt-2); }
 	.drag-handle:active { cursor:grabbing; }
 
+	.collapse-btn {
+		background:none; border:none; cursor:pointer;
+		color:var(--txt-3); padding:2px 6px;
+		flex-shrink:0; display:flex; align-items:center;
+		transition:color var(--t), transform 0.22s ease;
+		font-size:11px; line-height:1;
+	}
+	.collapse-btn:hover { color:var(--txt-2); }
+	.collapse-btn.is-collapsed { transform:rotate(-90deg); }
+	.card-head.is-collapsed { border-bottom-color:transparent; }
+
 	.card-sym {
 		font-family:var(--mono); font-size:13px; font-weight:700;
 		color:var(--accent); letter-spacing:1px;
@@ -363,16 +384,16 @@
 	[data-theme="light"] .card-sym { color:var(--txt); }
 
 	.card-name-input {
-		flex:1; background:transparent; border:none; outline:none;
+		width:180px; flex-shrink:0;
+		background:transparent; border:none; outline:none;
 		border-bottom:1px solid transparent;
 		font-size:14px; font-weight:500; color:var(--txt);
 		padding:2px 4px; transition:border-color var(--t);
-		min-width:100px;
 	}
 	.card-name-input:focus { border-bottom-color:var(--line-strong); }
 	.card-name-input::placeholder { color:var(--txt-3); font-weight:400; }
 
-	.card-stats { display:flex; gap:24px; margin-left:auto; flex-wrap:wrap; }
+	.card-stats { display:flex; gap:24px; margin-left:auto; flex-wrap:wrap; padding-right:12px; border-right:1px solid var(--line-strong); }
 	.card-stat { text-align:right; }
 	.card-stat-label { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--txt-2); }
 	.card-stat-val { font-family:var(--mono); font-size:13px; font-weight:600; }
@@ -389,7 +410,7 @@
 		border-bottom:1px solid var(--line); white-space:nowrap;
 		text-align:left;
 	}
-	.tx-table tbody tr { border-bottom:1px solid var(--line); transition:background var(--t); }
+	.tx-table tbody tr { border-bottom:1px solid var(--line); background:var(--bg-1); transition:background var(--t); }
 	.tx-table tbody tr:last-child { border-bottom:none; }
 	.tx-table tbody tr:hover { background:var(--bg-2); }
 	.tx-table td { padding:9px 14px; vertical-align:middle; }
@@ -438,6 +459,7 @@
 		padding:24px 18px;
 		font-family:var(--mono); font-size:11px;
 		color:var(--txt-3); letter-spacing:0.5px;
+		background:var(--bg-1);
 	}
 
 	/* ═══════════════════════════════════════════════
@@ -531,6 +553,67 @@
 	[data-theme="light"] .json-filename { color:var(--txt); }
 
 	/* ═══════════════════════════════════════════════
+	   CONFIRM DIALOG
+	═══════════════════════════════════════════════ */
+	.confirm-overlay {
+		position:fixed; inset:0;
+		background:rgba(0,0,0,0.80); backdrop-filter:blur(6px);
+		display:flex; align-items:center; justify-content:center;
+		z-index:1100; padding:20px;
+	}
+	.confirm-box {
+		background:var(--bg-1);
+		border:1px solid var(--line-strong);
+		border-left:3px solid var(--danger);
+		padding:0;
+		width:100%; max-width:380px;
+		box-shadow:0 32px 80px rgba(0,0,0,0.65);
+		overflow:hidden;
+	}
+	.confirm-header {
+		display:flex; align-items:center; gap:12px;
+		padding:20px 22px 16px;
+		border-bottom:1px solid var(--line);
+	}
+	.confirm-icon-wrap {
+		width:34px; height:34px; flex-shrink:0;
+		background:var(--danger-dim);
+		border:1px solid var(--danger-border);
+		display:flex; align-items:center; justify-content:center;
+		font-size:15px;
+	}
+	.confirm-title {
+		font-size:14px; font-weight:700;
+		letter-spacing:-0.1px; color:var(--txt);
+		font-family:var(--sans);
+	}
+	.confirm-body {
+		padding:16px 22px 20px;
+	}
+	.confirm-msg {
+		font-size:13px; color:var(--txt-2);
+		line-height:1.75; margin-bottom:0;
+	}
+	.confirm-msg strong {
+		display:inline-block; margin-top:8px;
+		color:var(--txt); font-family:var(--mono);
+		font-size:11px; letter-spacing:0.5px;
+		background:var(--bg-2); border:1px solid var(--line-strong);
+		padding:4px 10px;
+	}
+	.confirm-warning {
+		font-size:11px; color:var(--danger);
+		font-family:var(--mono); letter-spacing:0.3px;
+		margin-top:12px; opacity:0.8;
+	}
+	.confirm-actions {
+		display:flex; gap:8px; justify-content:flex-end;
+		padding:12px 22px 16px;
+		border-top:1px solid var(--line);
+		background:var(--bg-2);
+	}
+
+	/* ═══════════════════════════════════════════════
 	   TOAST
 	═══════════════════════════════════════════════ */
 	.toasts {
@@ -562,6 +645,20 @@
 	/* ═══════════════════════════════════════════════
 	   TRANSITIONS
 	═══════════════════════════════════════════════ */
+	/* 折疊動畫 */
+	.collapse-enter-active,
+	.collapse-leave-active {
+		transition: opacity 0.22s ease, max-height 0.28s cubic-bezier(0.4,0,0.2,1);
+		max-height: 2000px;
+		opacity: 1;
+	}
+	.collapse-enter-from,
+	.collapse-leave-to {
+		max-height: 0;
+		opacity: 0;
+		overflow: hidden;
+	}
+
 	.fade-enter-active,.fade-leave-active { transition:opacity 0.15s, transform 0.15s; }
 	.fade-enter-from,.fade-leave-to { opacity:0; transform:translateY(-8px); }
 	.slide-enter-active { transition:all 0.2s var(--ease); }
@@ -746,10 +843,13 @@
 					@drop.prevent="onStockDrop($event,stock.symbol)"
 					@dragend="onDragEnd">
 
-					<div class="card-head">
-						<span class="drag-handle" title="拖曳排序">⠿</span>
+					<div class="card-head" :class="{'is-collapsed': collapsedStocks.has(stock.symbol)}" @click="toggleCollapse(stock.symbol)">
+						<span class="drag-handle" title="拖曳排序" @click.stop>⠿</span>
+						<button class="collapse-btn"
+							:class="{'is-collapsed': collapsedStocks.has(stock.symbol)}"
+							:title="collapsedStocks.has(stock.symbol) ? '展開' : '折疊'">▼</button>
 						<span class="card-sym">{{ stock.symbol }}</span>
-						<input class="card-name-input" v-model="stock.name" :placeholder="stock.symbol+' 名稱'" />
+						<input class="card-name-input" v-model="stock.name" :placeholder="stock.symbol+' 名稱'" @click.stop @focus.stop />
 						<div class="card-stats">
 							<div class="card-stat">
 								<div class="card-stat-label">損益</div>
@@ -768,9 +868,11 @@
 								<div class="card-stat-val" style="color:var(--txt-2)">{{ getStockSummary(stock.symbol).holdingShares }} 股</div>
 							</div>
 						</div>
-						<button class="btn btn-danger btn-icon" @click="removeStock(stock.symbol)" title="刪除">×</button>
+						<button class="btn btn-danger btn-icon" @click.stop="removeStock(stock.symbol)" title="刪除">×</button>
 					</div>
 
+					<transition name="collapse">
+					<div class="card-body-wrap" v-show="!collapsedStocks.has(stock.symbol)">
 					<div class="tx-wrap">
 						<table class="tx-table" v-if="getStockTransactions(stock.symbol).length>0">
 							<thead>
@@ -808,11 +910,13 @@
 							</tbody>
 						</table>
 						<div v-else class="tx-empty">— 尚無交易紀錄 —</div>
-					</div>
+					</div><!-- /tx-wrap -->
 					<button class="add-row-btn" @click="addTransaction(stock.symbol)">
 						+ 新增 {{ stock.symbol }} 交易
 					</button>
-				</div>
+					</div><!-- /card-body-wrap -->
+					</transition>
+				</div><!-- /card-outer -->
 			</transition-group>
 		</div>
 
@@ -864,6 +968,26 @@
 	</div>
 </transition>
 
+<!-- ── CONFIRM DIALOG ── -->
+<transition name="fade">
+	<div class="confirm-overlay" v-if="confirmDialog.show">
+		<div class="confirm-box">
+			<div class="confirm-header">
+				<div class="confirm-icon-wrap">{{ confirmDialog.icon }}</div>
+				<div class="confirm-title">{{ confirmDialog.title }}</div>
+			</div>
+			<div class="confirm-body">
+				<div class="confirm-msg" v-html="confirmDialog.message"></div>
+				<div class="confirm-warning">此操作無法復原</div>
+			</div>
+			<div class="confirm-actions">
+				<button class="btn" @click="confirmResolve(false)">取消</button>
+				<button class="btn btn-danger" @click="confirmResolve(true)">確認刪除</button>
+			</div>
+		</div>
+	</div>
+</transition>
+
 <!-- ── TOASTS ── -->
 <div class="toasts">
 	<transition-group name="list">
@@ -897,6 +1021,7 @@ createApp({
 		const dragOver = ref(false);
 		const showJsonModal = ref(false);
 		const dragState = ref({ draggingSymbol: null, overSymbol: null });
+		const collapsedStocks = ref(new Set());
 		const exportedJson = ref('');
 		const exportedFilename = ref('');
 		let txIdCounter = 1;
@@ -922,11 +1047,32 @@ createApp({
 			setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3200);
 		};
 
-		const formatCurrency = (val) => {
+		const formatCurrency = (val, forceCompact = false) => {
 			if (val === undefined || val === null || isNaN(val)) return '—';
+			const sign = val < 0 ? '−$' : '$';
 			const abs = Math.abs(val);
-			const str = abs.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-			return (val < 0 ? '−$' : '$') + str;
+
+			// Full format first — check if it would be "long"
+			const full = abs.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+			const fullStr = sign + full;
+
+			// Threshold: 9 chars (e.g. "$999,999" = 8 chars, "$1,000,000" = 10 chars)
+			// Only abbreviate if full string is >= 9 chars (meaning 7+ digit numbers i.e. ≥1,000,000)
+			// or if explicitly requested
+			if (!forceCompact && fullStr.length < 10) return fullStr;
+
+			// Compact: M for millions, K for ten-thousands and above
+			if (abs >= 1_000_000) {
+				const n = abs / 1_000_000;
+				const decimals = n < 10 ? 2 : n < 100 ? 1 : 0;
+				return sign + n.toFixed(decimals) + 'M';
+			}
+			if (abs >= 10_000) {
+				const n = abs / 1_000;
+				const decimals = n < 100 ? 1 : 0;
+				return sign + n.toFixed(decimals) + 'K';
+			}
+			return fullStr;
 		};
 		const formatPct = (val) => {
 			if (val === undefined || val === null || isNaN(val) || !isFinite(val)) return '—';
@@ -1053,8 +1199,32 @@ createApp({
 			markDirty();
 		};
 
-		const removeStock = (symbol) => {
-			if (!confirm(`確定要刪除 ${symbol} 及其所有交易紀錄？`)) return;
+		// ── 客製確認框（Promise-based）──
+		const confirmDialog = ref({ show:false, icon:'', title:'', message:'' });
+		let confirmResolveRef = null;
+
+		const showConfirm = ({ icon='⚠', title, message }) => {
+			return new Promise((resolve) => {
+				confirmDialog.value = { show:true, icon, title, message };
+				confirmResolveRef = resolve;
+			});
+		};
+
+		const confirmResolve = (result) => {
+			confirmDialog.value.show = false;
+			if (confirmResolveRef) { confirmResolveRef(result); confirmResolveRef = null; }
+		};
+
+		const removeStock = async (symbol) => {
+			const name = stocks.value.find(s => s.symbol === symbol)?.name;
+			const label = name ? `${symbol}（${name}）` : symbol;
+			const txCount = transactions.value.filter(t => t.symbol === symbol).length;
+			const ok = await showConfirm({
+				icon: '🗑',
+				title: '刪除股票',
+				message: `確定要刪除 <strong>${label}</strong> 及其 ${txCount} 筆交易紀錄？`
+			});
+			if (!ok) return;
 			stocks.value = stocks.value.filter(s => s.symbol !== symbol);
 			transactions.value = transactions.value.filter(t => t.symbol !== symbol);
 			addToast(`已刪除 ${symbol}`, 'info', '✓');
@@ -1080,7 +1250,17 @@ createApp({
 			});
 		};
 
-		const removeTransaction = (id) => {
+		const removeTransaction = async (id) => {
+			const tx = transactions.value.find(t => t.id === id);
+			if (!tx) return;
+			const dateStr = tx.date || '—';
+			const typeStr = tx.type === 'buy' ? '買入' : '賣出';
+			const ok = await showConfirm({
+				icon: '🗑',
+				title: '刪除交易紀錄',
+				message: `確定要刪除這筆交易？<br><strong>${tx.symbol}｜${typeStr}｜${dateStr}</strong>`
+			});
+			if (!ok) return;
 			transactions.value = transactions.value.filter(t => t.id !== id);
 			markDirty();
 		};
@@ -1166,6 +1346,18 @@ createApp({
 			stocks.value=arr; onDragEnd(); markDirty();
 		};
 
+		// ── 折疊/展開 ──
+		const toggleCollapse = (symbol) => {
+			const s = collapsedStocks.value;
+			if (s.has(symbol)) {
+				s.delete(symbol);
+			} else {
+				s.add(symbol);
+			}
+			// 觸發 Vue 響應式更新（Set mutation 不自動觸發）
+			collapsedStocks.value = new Set(s);
+		};
+
 		const copyJson = () => {
 			navigator.clipboard.writeText(exportedJson.value)
 				.then(() => addToast('已複製到剪貼簿', 'success', '✓'))
@@ -1218,6 +1410,8 @@ createApp({
 			addStock, removeStock, addTransaction, removeTransaction,
 			createNewReport, downloadReport, triggerFileUpload, loadReport, onDrop,
 			dragState, onDragStart, onDragOver, onDragLeave, onDragEnd, onStockDrop,
+			collapsedStocks, toggleCollapse,
+			confirmDialog, confirmResolve,
 			markDirty, copyJson,
 			stockSummaries, totalCost, totalRevenue, totalProfit, totalROI,
 			unrealizedProfit, holdingShares, buyCount, sellCount,
